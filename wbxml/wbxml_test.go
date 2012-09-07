@@ -36,14 +36,21 @@ func _ExampleWBXMLDecode() {
 }
 */
 
+const (
+	TAG_BR   byte = 0x05
+	TAG_CARD byte = 0x06
+	TAG_XYZ  byte = 0x07
+	TAG_DO   byte = 0x08
+)
+
 func MakeCodeBook() *CodeBook {
 	var codeBook *CodeBook = NewCodeBook()
 
 	var codePage CodePage = NewCodePage("cp", 0)
-	codePage.AddTag("BR", 0x05)
-	codePage.AddTag("CARD", 0x06)
-	codePage.AddTag("XYZ", 0x07)
-	codePage.AddTag("DO", 0x08)
+	codePage.AddTag("BR", TAG_BR)
+	codePage.AddTag("CARD", TAG_CARD)
+	codePage.AddTag("XYZ", TAG_XYZ)
+	codePage.AddTag("DO", TAG_DO)
 
 	codeBook.AddCodePage(codePage)
 
@@ -57,8 +64,28 @@ func MakeDataBuffer(data ...byte) *bytes.Buffer {
 func ExampleEmptyTag() {
 	fmt.Println(
 		Decode(
-			MakeDataBuffer(0x01, 0x01, 0x03, 0x00, 0x07),
+			MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, TAG_XYZ),
 			MakeCodeBook()))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ/>
+}
+
+func ExampleTagWithEmptyTagAsContent() {
+	fmt.Println(
+		Decode(
+			MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, TAG_XYZ|EXT_I_0, TAG_CARD, END),
+			MakeCodeBook()))
+	// OUTPUT: <?xml version="1.0"?>
+	// <XYZ><CARD/></XYZ>
+}
+
+func ExampleMultipleNestedTags() {
+	fmt.Println(
+		Decode(
+			MakeDataBuffer(
+				WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
+				TAG_XYZ|EXT_I_0, TAG_CARD|EXT_I_0, TAG_DO|EXT_I_0, TAG_BR, END, END, END),
+			MakeCodeBook()))
+	// OUTPUT: <?xml version="1.0"?>
+	// <XYZ><CARD><DO><BR/></DO></CARD></XYZ>
 }

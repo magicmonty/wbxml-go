@@ -9,7 +9,26 @@ func decodeTagWithContentAndAttributes(reader io.ByteScanner, codeBook *CodeBook
 }
 
 func decodeTagWithContent(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
-	return ""
+	var (
+		result     string = ""
+		nextByte   byte
+		tagCode    byte
+		currentTag string
+	)
+
+	nextByte, _ = reader.ReadByte()
+	tagCode = nextByte &^ EXT_I_0
+	if currentCodePage.HasTagCode(tagCode) {
+		currentTag = currentCodePage.Tags[tagCode]
+		result = "<" + currentTag + ">"
+		result += decodeElement(reader, codeBook, currentCodePage)
+		nextByte, _ = reader.ReadByte()
+		if nextByte == END {
+			result += "</" + currentTag + ">"
+		}
+	}
+
+	return result
 }
 
 func decodeEmptyTagWithAttributes(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
@@ -38,8 +57,9 @@ func decodeElement(reader io.ByteScanner, codeBook *CodeBook, currentCodePage Co
 	nextByte, _ = reader.ReadByte()
 	reader.UnreadByte()
 
-	if nextByte&EXT_I_0 != 0 {
-		if nextByte&EXT_0 != 0 {
+	if nextByte&EXT_I_0 == EXT_I_0 {
+
+		if nextByte&EXT_0 == EXT_0 {
 			return decodeTagWithContentAndAttributes(reader, codeBook, currentCodePage)
 		} else {
 			return decodeTagWithContent(reader, codeBook, currentCodePage)
