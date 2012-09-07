@@ -17,12 +17,16 @@ func decodeEmptyTagWithAttributes(b *bytes.Buffer, codeBook *CodeBook, currentCo
 }
 
 func decodeEmptyTag(b *bytes.Buffer, codeBook *CodeBook, currentCodePage CodePage) string {
-	var nextByte byte
+	var (
+		nextByte byte
+	)
+
 	nextByte, _ = b.ReadByte()
 
-	if currentCodePage.HasCode(nextByte) {
-		return "<" + currentCodePage.Codes[nextByte] + "/>"
+	if currentCodePage.HasTagCode(nextByte) {
+		return "<" + currentCodePage.Tags[nextByte] + "/>"
 	}
+
 	return ""
 }
 

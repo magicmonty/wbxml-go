@@ -26,9 +26,9 @@ func _ExampleWBXMLDecode() {
 	*codeBook = NewCodeBook()
 	var codePage CodePage = NewCodePage("", 0)
 
-	codePage.AddItem("BR", 0x05)
-	codePage.AddItem("CARD", 0x06)
-	codePage.AddItem("XYZ", 0x07)
+	codePage.AddTag("BR", 0x05)
+	codePage.AddTag("CARD", 0x06)
+	codePage.AddTag("XYZ", 0x07)
 
 	fmt.Println(Decode(b, codeBook))
 	// OUTPUT: <?xml version="1.0"?>
@@ -36,19 +36,26 @@ func _ExampleWBXMLDecode() {
 }
 */
 
-func ExampleEmptyTag() {
-	var data []byte = make([]byte, 34)
-	data = []byte{0x01, 0x01, 0x03, 0x00, 0x07, 0x00, 0x01, 0x01}
-
-	var b *bytes.Buffer = bytes.NewBuffer(data)
-
+func MakeCodeBook() *CodeBook {
 	var codeBook *CodeBook = NewCodeBook()
-	var codePage CodePage = NewCodePage("cp", 0)
 
-	codePage.AddItem("XYZ", 0x07)
+	var codePage CodePage = NewCodePage("cp", 0)
+	codePage.AddTag("BR", 0x05)
+	codePage.AddTag("CARD", 0x06)
+	codePage.AddTag("XYZ", 0x07)
+	codePage.AddTag("DO", 0x08)
+
 	codeBook.AddCodePage(codePage)
 
-	fmt.Println(Decode(b, codeBook))
+	return codeBook
+}
+
+func ExampleEmptyTag() {
+	var data []byte = make([]byte, 0)
+	data = []byte{0x01, 0x01, 0x03, 0x00, 0x07}
+	var b *bytes.Buffer = bytes.NewBuffer(data)
+
+	fmt.Println(Decode(b, MakeCodeBook()))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ/>
 }
