@@ -50,12 +50,15 @@ func MakeCodeBook() *CodeBook {
 	return codeBook
 }
 
-func ExampleEmptyTag() {
-	var data []byte = make([]byte, 0)
-	data = []byte{0x01, 0x01, 0x03, 0x00, 0x07}
-	var b *bytes.Buffer = bytes.NewBuffer(data)
+func MakeDataBuffer(data ...byte) *bytes.Buffer {
+	return bytes.NewBuffer(data)
+}
 
-	fmt.Println(Decode(b, MakeCodeBook()))
+func ExampleEmptyTag() {
+	fmt.Println(
+		Decode(
+			MakeDataBuffer(0x01, 0x01, 0x03, 0x00, 0x07),
+			MakeCodeBook()))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ/>
 }
