@@ -1,7 +1,7 @@
 package wbxml
 
 import (
-	"bytes"
+	"io"
 )
 
 type Header struct {
@@ -11,11 +11,11 @@ type Header struct {
 	stringTable      StringTable
 }
 
-func (h *Header) ReadFromBuffer(b *bytes.Buffer) {
-	h.versionNumber, _ = b.ReadByte()
-	h.publicIdentifier, _ = b.ReadByte()
-	h.charSet, _ = b.ReadByte()
-	h.stringTable.ReadFromBuffer(b)
+func (h *Header) ReadFromBuffer(reader io.ByteReader) {
+	h.versionNumber, _ = reader.ReadByte()
+	h.publicIdentifier, _ = reader.ReadByte()
+	h.charSet, _ = reader.ReadByte()
+	h.stringTable.ReadFromBuffer(reader)
 }
 
 func NewDefaultHeader() Header {

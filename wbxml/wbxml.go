@@ -1,27 +1,27 @@
 package wbxml
 
 import (
-	"bytes"
+	"io"
 )
 
-func decodeTagWithContentAndAttributes(b *bytes.Buffer, codeBook *CodeBook, currentCodePage CodePage) string {
+func decodeTagWithContentAndAttributes(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
 	return ""
 }
 
-func decodeTagWithContent(b *bytes.Buffer, codeBook *CodeBook, currentCodePage CodePage) string {
+func decodeTagWithContent(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
 	return ""
 }
 
-func decodeEmptyTagWithAttributes(b *bytes.Buffer, codeBook *CodeBook, currentCodePage CodePage) string {
+func decodeEmptyTagWithAttributes(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
 	return ""
 }
 
-func decodeEmptyTag(b *bytes.Buffer, codeBook *CodeBook, currentCodePage CodePage) string {
+func decodeEmptyTag(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
 	var (
 		nextByte byte
 	)
 
-	nextByte, _ = b.ReadByte()
+	nextByte, _ = reader.ReadByte()
 
 	if currentCodePage.HasTagCode(nextByte) {
 		return "<" + currentCodePage.Tags[nextByte] + "/>"
@@ -30,43 +30,43 @@ func decodeEmptyTag(b *bytes.Buffer, codeBook *CodeBook, currentCodePage CodePag
 	return ""
 }
 
-func decodeElement(b *bytes.Buffer, codeBook *CodeBook, currentCodePage CodePage) string {
+func decodeElement(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
 	var (
 		nextByte byte
 	)
 
-	nextByte, _ = b.ReadByte()
-	b.UnreadByte()
+	nextByte, _ = reader.ReadByte()
+	reader.UnreadByte()
 
 	if nextByte&EXT_I_0 != 0 {
 		if nextByte&EXT_0 != 0 {
-			return decodeTagWithContentAndAttributes(b, codeBook, currentCodePage)
+			return decodeTagWithContentAndAttributes(reader, codeBook, currentCodePage)
 		} else {
-			return decodeTagWithContent(b, codeBook, currentCodePage)
+			return decodeTagWithContent(reader, codeBook, currentCodePage)
 		}
 	} else if nextByte&EXT_0 != 0 {
-		return decodeEmptyTagWithAttributes(b, codeBook, currentCodePage)
+		return decodeEmptyTagWithAttributes(reader, codeBook, currentCodePage)
 	} else {
-		return decodeEmptyTag(b, codeBook, currentCodePage)
+		return decodeEmptyTag(reader, codeBook, currentCodePage)
 	}
 
 	return ""
 }
 
-func decodeBody(b *bytes.Buffer, codeBook *CodeBook) string {
+func decodeBody(reader io.ByteScanner, codeBook *CodeBook) string {
 	var currentCodePage CodePage = codeBook.CodePages[0]
 
-	return decodeElement(b, codeBook, currentCodePage)
+	return decodeElement(reader, codeBook, currentCodePage)
 }
 
-func Decode(b *bytes.Buffer, codeBook *CodeBook) string {
+func Decode(reader io.ByteScanner, codeBook *CodeBook) string {
 	var (
 		result string = "<?xml version=\"1.0\"?>\n"
 		header Header
 	)
 
-	header.ReadFromBuffer(b)
-	result += decodeBody(b, codeBook)
+	header.ReadFromBuffer(reader)
+	result += decodeBody(reader, codeBook)
 
 	return result
 }
