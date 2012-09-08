@@ -132,7 +132,9 @@ func (d *Decoder) decodeElement() string {
 	nextByte, _ = d.reader.ReadByte()
 	d.reader.UnreadByte()
 
-	if nextByte&TAG_HAS_CONTENT != 0 {
+	if nextByte == STR_I {
+		return d.decodeInlineString()
+	} else if nextByte&TAG_HAS_CONTENT != 0 {
 
 		if nextByte&TAG_HAS_ATTRIBUTES != 0 {
 			return d.decodeTagWithContentAndAttributes()
@@ -149,16 +151,13 @@ func (d *Decoder) decodeElement() string {
 }
 
 func (d *Decoder) decodeBody() string {
-	return d.decodeElement()
+	var (
+		documentType string = "<?xml version=\"1.0\"?>\n"
+	)
+
+	return documentType + d.decodeElement()
 }
 
 func Decode(reader io.ByteScanner, codeBook *CodeBook) string {
-	var (
-		result string = "<?xml version=\"1.0\"?>\n"
-	)
-
-	decoder := NewDecoder(reader, codeBook)
-	result += decoder.decodeBody()
-
-	return result
+	return NewDecoder(reader, codeBook).decodeBody()
 }

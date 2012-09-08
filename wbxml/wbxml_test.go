@@ -79,6 +79,15 @@ func ExampleTagWithEmptyTagAsContent() {
 	// <XYZ><CARD/></XYZ>
 }
 
+func ExampleTagWithTextAsContent() {
+	fmt.Println(
+		Decode(
+			MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, TAG_XYZ|TAG_HAS_CONTENT, STR_I, 'X', ' ', '&', ' ', 'Y', 0x00, END),
+			MakeCodeBook()))
+	// OUTPUT: <?xml version="1.0"?>
+	// <XYZ>X & Y</XYZ>
+}
+
 func ExampleMultipleNestedTags() {
 	fmt.Println(
 		Decode(
@@ -92,7 +101,7 @@ func ExampleMultipleNestedTags() {
 
 func ExampleReadInlineString() {
 	decoder := NewDecoder(
-		MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, STR_I, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64, 0x00),
+		MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, STR_I, 'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd', 0x00),
 		MakeCodeBook())
 	fmt.Println(
 		decoder.decodeInlineString())
