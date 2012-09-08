@@ -1,14 +1,89 @@
 package wbxml
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 )
 
-func decodeTagWithContentAndAttributes(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
+const (
+	TAG_STATE       byte = 1
+	ATTRIBUTE_STATE byte = 2
+)
+
+type Decoder struct {
+	currentTagCodePage       CodePage
+	currentAttributeCodePage CodePage
+	currentState             byte
+	header                   Header
+	reader                   io.ByteScanner
+	codeBook                 *CodeBook
+}
+
+func NewDecoder(reader io.ByteScanner, codeBook *CodeBook) *Decoder {
+	decoder := new(Decoder)
+	decoder.codeBook = codeBook
+	decoder.reader = reader
+	decoder.currentTagCodePage = codeBook.CodePages[0]
+	decoder.currentState = TAG_STATE
+	decoder.header.ReadFromBuffer(reader)
+	return decoder
+}
+
+func (d *Decoder) decodeEntity() string {
+	var (
+		result   string = ""
+		entity   uint32
+		nextByte byte
+	)
+
+	nextByte, _ = d.reader.ReadByte()
+	if nextByte == ENTITY {
+		entity = readMultiByteUint32(d.reader)
+		result = fmt.Sprintf("&#%d;", entity)
+	}
+	return result
+}
+
+func (d *Decoder) decodeInlineString() string {
+	var (
+		result   string = ""
+		nextByte byte
+		buffer   bytes.Buffer
+	)
+
+	nextByte, _ = d.reader.ReadByte()
+	if nextByte == STR_I {
+		for true {
+			nextByte, _ = d.reader.ReadByte()
+			if nextByte == 0x00 {
+				break
+			}
+			buffer.WriteByte(nextByte)
+		}
+		result, _ = buffer.ReadString(0x00)
+	}
+	return result
+}
+
+func (d *Decoder) decodeStringTableReference() string {
+	var (
+		result   string = ""
+		nextByte byte
+	)
+
+	nextByte, _ = d.reader.ReadByte()
+	if nextByte == STR_T {
+	}
+
+	return result
+}
+
+func (d *Decoder) decodeTagWithContentAndAttributes() string {
 	return ""
 }
 
-func decodeTagWithContent(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
+func (d *Decoder) decodeTagWithContent() string {
 	var (
 		result     string = ""
 		nextByte   byte
@@ -16,13 +91,13 @@ func decodeTagWithContent(reader io.ByteScanner, codeBook *CodeBook, currentCode
 		currentTag string
 	)
 
-	nextByte, _ = reader.ReadByte()
+	nextByte, _ = d.reader.ReadByte()
 	tagCode = nextByte &^ TAG_HAS_CONTENT
-	if currentCodePage.HasTagCode(tagCode) {
-		currentTag = currentCodePage.Tags[tagCode]
+	if d.currentTagCodePage.HasTagCode(tagCode) {
+		currentTag = d.currentTagCodePage.Tags[tagCode]
 		result = "<" + currentTag + ">"
-		result += decodeElement(reader, codeBook, currentCodePage)
-		nextByte, _ = reader.ReadByte()
+		result += d.decodeElement()
+		nextByte, _ = d.reader.ReadByte()
 		if nextByte == END {
 			result += "</" + currentTag + ">"
 		}
@@ -31,62 +106,59 @@ func decodeTagWithContent(reader io.ByteScanner, codeBook *CodeBook, currentCode
 	return result
 }
 
-func decodeEmptyTagWithAttributes(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
+func (d *Decoder) decodeEmptyTagWithAttributes() string {
 	return ""
 }
 
-func decodeEmptyTag(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
+func (d *Decoder) decodeEmptyTag() string {
 	var (
 		nextByte byte
 	)
 
-	nextByte, _ = reader.ReadByte()
+	nextByte, _ = d.reader.ReadByte()
 
-	if currentCodePage.HasTagCode(nextByte) {
-		return "<" + currentCodePage.Tags[nextByte] + "/>"
+	if d.currentTagCodePage.HasTagCode(nextByte) {
+		return "<" + d.currentTagCodePage.Tags[nextByte] + "/>"
 	}
 
 	return ""
 }
 
-func decodeElement(reader io.ByteScanner, codeBook *CodeBook, currentCodePage CodePage) string {
+func (d *Decoder) decodeElement() string {
 	var (
 		nextByte byte
 	)
 
-	nextByte, _ = reader.ReadByte()
-	reader.UnreadByte()
+	nextByte, _ = d.reader.ReadByte()
+	d.reader.UnreadByte()
 
 	if nextByte&TAG_HAS_CONTENT != 0 {
 
 		if nextByte&TAG_HAS_ATTRIBUTES != 0 {
-			return decodeTagWithContentAndAttributes(reader, codeBook, currentCodePage)
+			return d.decodeTagWithContentAndAttributes()
 		} else {
-			return decodeTagWithContent(reader, codeBook, currentCodePage)
+			return d.decodeTagWithContent()
 		}
 	} else if nextByte&TAG_HAS_ATTRIBUTES != 0 {
-		return decodeEmptyTagWithAttributes(reader, codeBook, currentCodePage)
+		return d.decodeEmptyTagWithAttributes()
 	} else {
-		return decodeEmptyTag(reader, codeBook, currentCodePage)
+		return d.decodeEmptyTag()
 	}
 
 	return ""
 }
 
-func decodeBody(reader io.ByteScanner, codeBook *CodeBook) string {
-	var currentCodePage CodePage = codeBook.CodePages[0]
-
-	return decodeElement(reader, codeBook, currentCodePage)
+func (d *Decoder) decodeBody() string {
+	return d.decodeElement()
 }
 
 func Decode(reader io.ByteScanner, codeBook *CodeBook) string {
 	var (
 		result string = "<?xml version=\"1.0\"?>\n"
-		header Header
 	)
 
-	header.ReadFromBuffer(reader)
-	result += decodeBody(reader, codeBook)
+	decoder := NewDecoder(reader, codeBook)
+	result += decoder.decodeBody()
 
 	return result
 }

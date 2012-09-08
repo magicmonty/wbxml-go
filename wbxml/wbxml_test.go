@@ -89,3 +89,32 @@ func ExampleMultipleNestedTags() {
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ><CARD><DO><BR/></DO></CARD></XYZ>
 }
+
+func ExampleReadInlineString() {
+	decoder := NewDecoder(
+		MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, STR_I, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64, 0x00),
+		MakeCodeBook())
+	fmt.Println(
+		decoder.decodeInlineString())
+	// OUTPUT: Hello World
+}
+
+func ExampleReadMultiByteUint32() {
+	fmt.Printf("%d\n",
+		readMultiByteUint32(MakeDataBuffer(0x81, 0x20)))
+	fmt.Printf("%d\n",
+		readMultiByteUint32(MakeDataBuffer(0x60)))
+	// OUTPUT: 160
+	// 96
+}
+
+func ExampleDecodeEntity() {
+	decoder := NewDecoder(
+		MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, ENTITY, 0x81, 0x20, ENTITY, 0x60),
+		MakeCodeBook())
+
+	fmt.Println(decoder.decodeEntity())
+	fmt.Println(decoder.decodeEntity())
+	// OUTPUT: &#160;
+	// &#96;
+}
