@@ -17,7 +17,7 @@ func decodeTagWithContent(reader io.ByteScanner, codeBook *CodeBook, currentCode
 	)
 
 	nextByte, _ = reader.ReadByte()
-	tagCode = nextByte &^ EXT_I_0
+	tagCode = nextByte &^ TAG_HAS_CONTENT
 	if currentCodePage.HasTagCode(tagCode) {
 		currentTag = currentCodePage.Tags[tagCode]
 		result = "<" + currentTag + ">"
@@ -57,14 +57,14 @@ func decodeElement(reader io.ByteScanner, codeBook *CodeBook, currentCodePage Co
 	nextByte, _ = reader.ReadByte()
 	reader.UnreadByte()
 
-	if nextByte&EXT_I_0 == EXT_I_0 {
+	if nextByte&TAG_HAS_CONTENT != 0 {
 
-		if nextByte&EXT_0 == EXT_0 {
+		if nextByte&TAG_HAS_ATTRIBUTES != 0 {
 			return decodeTagWithContentAndAttributes(reader, codeBook, currentCodePage)
 		} else {
 			return decodeTagWithContent(reader, codeBook, currentCodePage)
 		}
-	} else if nextByte&EXT_0 != 0 {
+	} else if nextByte&TAG_HAS_ATTRIBUTES != 0 {
 		return decodeEmptyTagWithAttributes(reader, codeBook, currentCodePage)
 	} else {
 		return decodeEmptyTag(reader, codeBook, currentCodePage)

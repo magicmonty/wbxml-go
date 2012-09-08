@@ -73,7 +73,7 @@ func ExampleEmptyTag() {
 func ExampleTagWithEmptyTagAsContent() {
 	fmt.Println(
 		Decode(
-			MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, TAG_XYZ|EXT_I_0, TAG_CARD, END),
+			MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, TAG_XYZ|TAG_HAS_CONTENT, TAG_CARD, END),
 			MakeCodeBook()))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ><CARD/></XYZ>
@@ -84,7 +84,7 @@ func ExampleMultipleNestedTags() {
 		Decode(
 			MakeDataBuffer(
 				WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
-				TAG_XYZ|EXT_I_0, TAG_CARD|EXT_I_0, TAG_DO|EXT_I_0, TAG_BR, END, END, END),
+				TAG_XYZ|TAG_HAS_CONTENT, TAG_CARD|TAG_HAS_CONTENT, TAG_DO|TAG_HAS_CONTENT, TAG_BR, END, END, END),
 			MakeCodeBook()))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ><CARD><DO><BR/></DO></CARD></XYZ>
