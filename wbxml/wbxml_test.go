@@ -70,6 +70,16 @@ func ExampleEmptyTag() {
 	// <XYZ/>
 }
 
+func ExampleEmptyLiteralTag() {
+	fmt.Println(
+		Decode(
+			MakeDataBuffer(
+				WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x04, 'X', 'Y', 'Z', 0x00, LITERAL, 0x00),
+			MakeCodeBook()))
+	// OUTPUT: <?xml version="1.0"?>
+	// <XYZ/>
+}
+
 func ExampleTagWithEmptyTagAsContent() {
 	fmt.Println(
 		Decode(

@@ -117,7 +117,9 @@ func (d *Decoder) decodeEmptyTag() string {
 
 	nextByte, _ = d.reader.ReadByte()
 
-	if d.currentTagCodePage.HasTagCode(nextByte) {
+	if nextByte == LITERAL {
+		return "<" + d.header.stringTable.getString(d.reader) + "/>"
+	} else if d.currentTagCodePage.HasTagCode(nextByte) {
 		return "<" + d.currentTagCodePage.Tags[nextByte] + "/>"
 	}
 

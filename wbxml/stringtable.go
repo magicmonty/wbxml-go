@@ -1,6 +1,7 @@
 package wbxml
 
 import (
+	"bytes"
 	"io"
 )
 
@@ -19,4 +20,24 @@ func (st *StringTable) ReadFromBuffer(reader io.ByteReader) {
 			st.content[index], _ = reader.ReadByte()
 		}
 	}
+}
+
+func (st *StringTable) getString(reader io.ByteReader) string {
+	var (
+		result string = ""
+		index  uint32
+		b      bytes.Buffer
+	)
+
+	index = readMultiByteUint32(reader)
+	for i := index; i < uint32(len(st.content)); i++ {
+		if st.content[i] != 0x00 {
+			b.WriteByte(st.content[i])
+		} else {
+			break
+		}
+	}
+
+	result, _ = b.ReadString(0x00)
+	return result
 }
