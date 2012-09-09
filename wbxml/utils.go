@@ -14,19 +14,25 @@ func getByteValue(b byte) (byteValue byte, hasContinuationFlag bool) {
 	return byteValue, hasContinuationFlag
 }
 
-func readMultiByteUint32(reader io.ByteReader) uint32 {
+func readMultiByteUint32(reader io.ByteReader) (uint32, error) {
 	var (
 		result       uint32 = 0
 		nextByte     byte
 		continueRead bool = true
+		err          error
 	)
 
 	for continueRead {
-		nextByte, _ = reader.ReadByte()
-		nextByte, continueRead = getByteValue(nextByte)
-		result <<= 7
-		result |= uint32(nextByte)
+		nextByte, err = reader.ReadByte()
+		if err != nil {
+			result = 0
+			break
+		} else {
+			nextByte, continueRead = getByteValue(nextByte)
+			result <<= 7
+			result |= uint32(nextByte)
+		}
 	}
 
-	return result
+	return result, err
 }

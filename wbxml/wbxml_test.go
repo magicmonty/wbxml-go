@@ -26,7 +26,7 @@ func MakeCodeBook() *CodeBook {
 	codePage.AddTag("XYZ", TAG_XYZ)
 	codePage.AddTag("DO", TAG_DO)
 
-	codeBook.AddCodePage(codePage)
+	codeBook.AddTagCodePage(codePage)
 
 	return codeBook
 }
@@ -35,99 +35,103 @@ func MakeDataBuffer(data ...byte) *bytes.Buffer {
 	return bytes.NewBuffer(data)
 }
 
+func getDecodeResult(data ...byte) string {
+	var result string
+	result, _ = Decode(bytes.NewBuffer(data), MakeCodeBook())
+	return result
+}
+
 func ExampleEmptyTag() {
 	fmt.Println(
-		Decode(
-			MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, TAG_XYZ),
-			MakeCodeBook()))
+		getDecodeResult(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, TAG_XYZ))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ/>
 }
 
 func ExampleEmptyLiteralTag() {
 	fmt.Println(
-		Decode(
-			MakeDataBuffer(
-				WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x04, 'X', 'Y', 'Z', 0x00, LITERAL, 0x00),
-			MakeCodeBook()))
+		getDecodeResult(
+			WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8,
+			0x04, 'X', 'Y', 'Z', 0x00,
+			LITERAL, 0x00))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ/>
 }
 
 func ExampleTagWithEmptyTagAsContent() {
 	fmt.Println(
-		Decode(
-			MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, TAG_XYZ|TAG_HAS_CONTENT, TAG_CARD, END),
-			MakeCodeBook()))
+		getDecodeResult(
+			WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
+			TAG_XYZ|TAG_HAS_CONTENT, TAG_CARD, END))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ><CARD/></XYZ>
 }
 
 func ExampleTagWithTextAsContent() {
 	fmt.Println(
-		Decode(
-			MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, TAG_XYZ|TAG_HAS_CONTENT, STR_I, 'X', ' ', '&', ' ', 'Y', 0x00, END),
-			MakeCodeBook()))
+		getDecodeResult(
+			WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
+			TAG_XYZ|TAG_HAS_CONTENT,
+			STR_I, 'X', ' ', '&', ' ', 'Y', 0x00,
+			END))
 	// OUTPUT: <?xml version="1.0"?>
-	// <XYZ>X & Y</XYZ>
+	// <XYZ>X &amp; Y</XYZ>
 }
 
 func ExampleMultipleNestedTags() {
 	fmt.Println(
-		Decode(
-			MakeDataBuffer(
-				WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
-				TAG_XYZ|TAG_HAS_CONTENT, TAG_CARD|TAG_HAS_CONTENT, TAG_DO|TAG_HAS_CONTENT, TAG_BR, END, END, END),
-			MakeCodeBook()))
+		getDecodeResult(
+			WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
+			TAG_XYZ|TAG_HAS_CONTENT, TAG_CARD|TAG_HAS_CONTENT, TAG_DO|TAG_HAS_CONTENT,
+			TAG_BR,
+			END, END, END))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ><CARD><DO><BR/></DO></CARD></XYZ>
 }
 
-func ExampleReadInlineString() {
-	decoder := NewDecoder(
-		MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, STR_I, 'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd', 0x00),
-		MakeCodeBook())
-	fmt.Println(
-		decoder.decodeInlineString())
-	// OUTPUT: Hello World
-}
-
 func ExampleReadMultiByteUint32() {
-	fmt.Printf("%d\n",
-		readMultiByteUint32(MakeDataBuffer(0x81, 0x20)))
-	fmt.Printf("%d\n",
-		readMultiByteUint32(MakeDataBuffer(0x60)))
+	var (
+		result uint32
+	)
+
+	result, _ = readMultiByteUint32(MakeDataBuffer(0x81, 0x20))
+	fmt.Printf("%d\n", result)
+	result, _ = readMultiByteUint32(MakeDataBuffer(0x60))
+	fmt.Printf("%d\n", result)
 	// OUTPUT: 160
 	// 96
 }
 
 func ExampleDecodeEntity() {
-	decoder := NewDecoder(
-		MakeDataBuffer(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, ENTITY, 0x81, 0x20, ENTITY, 0x60),
+	decoder, _ := NewDecoder(
+		MakeDataBuffer(
+			WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
+			ENTITY, 0x81, 0x20,
+			ENTITY, 0x60),
 		MakeCodeBook())
-
-	fmt.Println(decoder.decodeEntity())
-	fmt.Println(decoder.decodeEntity())
+	var result string
+	result, _ = decoder.decodeEntity()
+	fmt.Println(result)
+	result, _ = decoder.decodeEntity()
+	fmt.Println(result)
 	// OUTPUT: &#160;
 	// &#96;
 }
 
 // Example from http://www.w3.org/TR/wbxml/#_Toc443384926
-func _ExampleSimpleWBXMLDecode() {
+func ExampleSimpleWBXMLDecode() {
 	fmt.Println(
-		Decode(
-			MakeDataBuffer(
-				WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
-				TAG_XYZ|TAG_HAS_CONTENT, TAG_CARD|TAG_HAS_CONTENT,
-				STR_I, ' ', 'X', ' ', '&', ' ', 'Y', 0x00,
-				TAG_BR,
-				STR_I, ' ', 'X', 0x00,
-				ENTITY, 0x81, 0x20,
-				STR_I, '=', 0x00,
-				ENTITY, 0x81, 0x20,
-				STR_I, '1', ' ', 0x00,
-				END, END),
-			MakeCodeBook()))
+		getDecodeResult(
+			WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
+			TAG_XYZ|TAG_HAS_CONTENT, TAG_CARD|TAG_HAS_CONTENT,
+			STR_I, ' ', 'X', ' ', '&', ' ', 'Y', 0x00,
+			TAG_BR,
+			STR_I, ' ', 'X', 0x00,
+			ENTITY, 0x81, 0x20,
+			STR_I, '=', 0x00,
+			ENTITY, 0x81, 0x20,
+			STR_I, '1', ' ', 0x00,
+			END, END))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ><CARD> X &amp; Y<BR/> X&#160;=&#160;1 </CARD></XYZ>
 }

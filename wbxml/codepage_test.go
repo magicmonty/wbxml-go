@@ -30,4 +30,11 @@ func Test_NewCodePage(t *testing.T) {
 		t.Error("The tag \"Blubb\" should not exist")
 	}
 
+	if codePage.HasTagCode(0x08) {
+		t.Error("The tag code 0x08 should not exist")
+	}
+
+	if codePage.HasTagCode(0x00) {
+		t.Error("The tag code 0x00 should not exist")
+	}
 }

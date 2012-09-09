@@ -11,11 +11,20 @@ type Header struct {
 	stringTable      StringTable
 }
 
-func (h *Header) ReadFromBuffer(reader io.ByteReader) {
-	h.versionNumber, _ = reader.ReadByte()
-	h.publicIdentifier = readMultiByteUint32(reader)
-	h.charSet = readMultiByteUint32(reader)
-	h.stringTable.ReadFromBuffer(reader)
+func (h *Header) ReadFromBuffer(reader io.ByteReader) error {
+	var err error
+	h.versionNumber, err = reader.ReadByte()
+	if err == nil {
+		h.publicIdentifier, err = readMultiByteUint32(reader)
+		if err == nil {
+			h.charSet, err = readMultiByteUint32(reader)
+			if err == nil {
+				err = h.stringTable.ReadFromBuffer(reader)
+			}
+		}
+	}
+
+	return err
 }
 
 func NewDefaultHeader() Header {
