@@ -61,7 +61,7 @@ func (codePage *AttributeCodePage) GetString(Code byte) string {
 	if Code < ATTRIBUTE_VALUE_SPACE_START {
 		if codePage.HasCode(Code) {
 			entry = codePage.Attributes[Code]
-			result = entry.Name + "="
+			result = " " + entry.Name + "="
 			if entry.ValuePrefix != "" {
 				result += "\"" + entry.ValuePrefix
 			}

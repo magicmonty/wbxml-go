@@ -84,12 +84,12 @@ func ExampleToString() {
 	fmt.Println(codePage.GetString(0x0C)) // code doesn't existent 
 	fmt.Println(codePage.GetString(0x85))
 	fmt.Println(codePage.GetString(0x86))
-	// OUTPUT: STYLE="LIST
-	// TYPE=
-	// TYPE="TEXT
-	// URL="http://
-	// NAME=
-	// KEY=
+	// OUTPUT:  STYLE="LIST
+	//  TYPE=
+	//  TYPE="TEXT
+	//  URL="http://
+	//  NAME=
+	//  KEY=
 	//
 	// .org
 	// ACCEPT
