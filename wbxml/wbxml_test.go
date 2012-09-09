@@ -11,10 +11,21 @@ func TestDummy(t *testing.T) {
 }
 
 const (
-	TAG_BR   byte = 0x05
-	TAG_CARD byte = 0x06
-	TAG_XYZ  byte = 0x07
-	TAG_DO   byte = 0x08
+	TAG_BR    byte = 0x05
+	TAG_CARD  byte = 0x06
+	TAG_XYZ   byte = 0x07
+	TAG_DO    byte = 0x08
+	TAG_INPUT byte = 0x09
+
+	ATTR_STYLE_LIST byte = 0x05
+	ATTR_TYPE       byte = 0x06
+	ATTR_TYPE_TEXT  byte = 0x07
+	ATTR_URL_HTTP   byte = 0x08
+	ATTR_NAME       byte = 0x09
+	ATTR_KEY        byte = 0x0A
+
+	VALUE_ORG    byte = 0x85
+	VALUE_ACCEPT byte = 0x86
 )
 
 func MakeCodeBook() *CodeBook {
@@ -25,8 +36,21 @@ func MakeCodeBook() *CodeBook {
 	codePage.AddTag("CARD", TAG_CARD)
 	codePage.AddTag("XYZ", TAG_XYZ)
 	codePage.AddTag("DO", TAG_DO)
+	codePage.AddTag("INPUT", TAG_INPUT)
 
 	codeBook.AddTagCodePage(codePage)
+
+	var attributeCodePage AttributeCodePage = NewAttributeCodePage(0)
+	attributeCodePage.AddAttribute("STYLE", "LIST", ATTR_STYLE_LIST)
+	attributeCodePage.AddAttribute("TYPE", "", ATTR_TYPE)
+	attributeCodePage.AddAttribute("TYPE", "TEXT", ATTR_TYPE_TEXT)
+	attributeCodePage.AddAttribute("URL", "http://", ATTR_URL_HTTP)
+	attributeCodePage.AddAttribute("NAME", "", ATTR_NAME)
+	attributeCodePage.AddAttribute("KEY", "", ATTR_KEY)
+	attributeCodePage.AddAttributeValue(".org", VALUE_ORG)
+	attributeCodePage.AddAttributeValue("ACCEPT", VALUE_ACCEPT)
+
+	codeBook.AddAttributeCodePage(attributeCodePage)
 
 	return codeBook
 }
@@ -134,4 +158,27 @@ func ExampleSimpleWBXMLDecode() {
 			END, END))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ><CARD> X &amp; Y<BR/> X&#160;=&#160;1 </CARD></XYZ>
+}
+
+// Example from http://www.w3.org/TR/wbxml/#_Toc443384927
+func ExampleExtendedWBXMLDecode() {
+	fmt.Println(
+		getDecodeResult(
+			WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8,
+			0x12,
+			'a', 'b', 'c', 0x00,
+			' ', 'E', 'n', 't', 'e', 'r', ' ', 'n', 'a', 'm', 'e', ':', ' ', 0x00,
+			TAG_XYZ|TAG_HAS_CONTENT,
+			TAG_CARD|TAG_HAS_CONTENT|TAG_HAS_ATTRIBUTES,
+			ATTR_NAME, STR_T, 0x00, ATTR_STYLE_LIST, END,
+			TAG_DO|TAG_HAS_ATTRIBUTES,
+			ATTR_TYPE, VALUE_ACCEPT,
+			ATTR_URL_HTTP, STR_I, 'x', 'y', 'z', 0x00, VALUE_ORG, STR_I, '/', 's', 0x00, END,
+			STR_T, 0x04,
+			TAG_INPUT|TAG_HAS_ATTRIBUTES,
+			ATTR_TYPE_TEXT, ATTR_KEY, STR_I, 'N', 0x00, END,
+			END,
+			END))
+	// OUTPUT: <?xml version="1.0"?>
+	// <XYZ><CARD NAME="abc" STYLE="LIST"><DO TYPE="ACCEPT" URL="http://xyz.org/s"/> Enter name: <INPUT TYPE="TEXT" KEY="N"/></CARD></XYZ>
 }

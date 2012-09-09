@@ -12,28 +12,28 @@ func NewCodeBook() *CodeBook {
 	return codeBook
 }
 
-func (codeBook *CodeBook) HasTagCode(Code byte) bool {
-	var ok bool
-	_, ok = codeBook.TagCodePages[Code]
-	return ok
-}
-
-func (codeBook *CodeBook) HasAttributeCode(Code byte) bool {
-	var ok bool
-	_, ok = codeBook.AttributeCodePages[Code]
-	return ok
-}
-
 func (codeBook *CodeBook) AddTagCodePage(codePage CodePage) {
 	if !codeBook.HasTagCode(codePage.Code) {
 		codeBook.TagCodePages[codePage.Code] = codePage
 	}
 }
 
+func (codeBook *CodeBook) HasTagCode(Code byte) bool {
+	var ok bool
+	_, ok = codeBook.TagCodePages[Code]
+	return ok
+}
+
 func (codeBook *CodeBook) AddAttributeCodePage(codePage AttributeCodePage) {
 	if !codeBook.HasAttributeCode(codePage.Code) {
 		codeBook.AttributeCodePages[codePage.Code] = codePage
 	}
+}
+
+func (codeBook *CodeBook) HasAttributeCode(Code byte) bool {
+	var ok bool
+	_, ok = codeBook.AttributeCodePages[Code]
+	return ok
 }
 
 func (codeBook *CodeBook) IsReady() bool {

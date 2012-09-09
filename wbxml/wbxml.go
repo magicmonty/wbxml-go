@@ -92,18 +92,105 @@ func (d *Decoder) decodeTag() (string, error) {
 		}
 	}
 
-	if err != nil {
-		fmt.Printf("decodeTag: %s\n", err.Error())
-	}
 	return "", err
 }
 
 func (d *Decoder) decodeTagWithContentAndAttributes() (string, error) {
-	return "", nil
+	var (
+		result     string = ""
+		currentTag string
+		content    string
+		attributes string
+		err        error
+	)
+
+	currentTag, err = d.decodeTagName()
+	if err == nil && currentTag != "" {
+		attributes, err = d.decodeAttributes()
+		if err == nil {
+			content, err = d.decodeContent()
+			if err == nil {
+				result = fmt.Sprintf("<%s%s\">%s</%s>", currentTag, attributes, content, currentTag)
+			}
+		}
+	}
+
+	return result, err
 }
 
 func (d *Decoder) decodeEmptyTagWithAttributes() (string, error) {
-	return "", nil
+	var (
+		result     string = ""
+		currentTag string
+		attributes string
+		err        error
+	)
+	currentTag, err = d.decodeTagName()
+	if err == nil && currentTag != "" {
+		attributes, err = d.decodeAttributes()
+		if err == nil {
+			result = fmt.Sprintf("<%s%s\"/>", currentTag, attributes)
+		}
+	}
+
+	return result, err
+}
+
+func (d *Decoder) decodeAttributes() (string, error) {
+	var (
+		result         string
+		err            error
+		nextByte       byte
+		content        string
+		firstAttribute bool = true
+	)
+
+	nextByte, err = d.reader.ReadByte()
+	d.reader.UnreadByte()
+	for nextByte != END {
+		if err == nil {
+			if nextByte == STR_T {
+				content, err = d.decodeStringTableReference()
+			} else if nextByte == STR_I {
+				content, err = d.decodeInlineString()
+			} else {
+				content, err = d.decodeAttribute()
+				if !firstAttribute && nextByte < ATTRIBUTE_VALUE_SPACE_START {
+					content = "\"" + content
+				}
+				firstAttribute = false
+			}
+
+			if err == nil {
+				result += content
+			}
+		} else {
+			break
+		}
+		nextByte, err = d.reader.ReadByte()
+		d.reader.UnreadByte()
+	}
+
+	if nextByte == END {
+		d.reader.ReadByte()
+	}
+
+	return result, err
+}
+
+func (d *Decoder) decodeAttribute() (string, error) {
+	var (
+		nextByte byte
+		err      error
+		result   string
+	)
+
+	nextByte, err = d.reader.ReadByte()
+	if err == nil {
+		result = d.currentAttributeCodePage.GetString(nextByte)
+	}
+
+	return result, err
 }
 
 func (d *Decoder) decodeTagWithContent() (string, error) {
@@ -117,20 +204,15 @@ func (d *Decoder) decodeTagWithContent() (string, error) {
 
 	currentTag, err = d.decodeTagName()
 	if err == nil && currentTag != "" {
-		result = "<" + currentTag + ">"
 		content, err = d.decodeContent()
 		if err == nil {
-			result += content
 			nextByte, err = d.reader.ReadByte()
 			if err == nil && nextByte == END {
-				result += "</" + currentTag + ">"
+				result = fmt.Sprintf("<%s>%s</%s>", currentTag, content, currentTag)
 			}
 		}
 	}
 
-	if err != nil {
-		fmt.Printf("decodeTagWithContent: %s\n", err.Error())
-	}
 	return result, err
 }
 
@@ -149,6 +231,8 @@ func (d *Decoder) decodeContent() (string, error) {
 
 			if nextByte == STR_I {
 				content, err = d.decodeInlineString()
+			} else if nextByte == STR_T {
+				content, err = d.decodeStringTableReference()
 			} else if nextByte == ENTITY {
 				content, err = d.decodeEntity()
 			} else {
@@ -188,10 +272,6 @@ func (d *Decoder) decodeInlineString() (string, error) {
 		result, _ = buffer.ReadString(0x00)
 	}
 
-	if err != nil {
-		fmt.Printf("decodeInlineString: %s\n", err.Error())
-	}
-
 	return d.escapeString(result), err
 }
 
@@ -207,7 +287,6 @@ func (d *Decoder) decodeEmptyTag() (string, error) {
 		return "<" + tagName + "/>", nil
 	}
 
-	fmt.Printf("decodeEmptyTag: %s\n", err.Error())
 	return "", err
 }
 
@@ -233,10 +312,6 @@ func (d *Decoder) decodeTagName() (string, error) {
 		}
 	}
 
-	if err != nil {
-		fmt.Printf("decodeTagName: %s\n", err.Error())
-	}
-
 	return tagName, err
 }
 
@@ -254,10 +329,6 @@ func (d *Decoder) decodeEntity() (string, error) {
 		if err == nil {
 			result = fmt.Sprintf("&#%d;", entity)
 		}
-	}
-
-	if err != nil {
-		fmt.Printf("decodeEntity: %s\n", err.Error())
 	}
 
 	return result, err

@@ -85,11 +85,11 @@ func ExampleToString() {
 	fmt.Println(codePage.GetString(0x85))
 	fmt.Println(codePage.GetString(0x86))
 	// OUTPUT:  STYLE="LIST
-	//  TYPE=
+	//  TYPE="
 	//  TYPE="TEXT
 	//  URL="http://
-	//  NAME=
-	//  KEY=
+	//  NAME="
+	//  KEY="
 	//
 	// .org
 	// ACCEPT
