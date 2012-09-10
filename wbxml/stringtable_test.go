@@ -8,7 +8,7 @@ import (
 func Test_ReadFromInsufficientBufferShouldReturnError(t *testing.T) {
 	var st StringTable
 
-	data := MakeDataBuffer(0x0A, 'H', 'e', 'l', 'l', 'o')
+	data := makeDataBuffer(0x0A, 'H', 'e', 'l', 'l', 'o')
 
 	err := st.ReadFromBuffer(data)
 	if err == nil {
@@ -23,7 +23,7 @@ func Test_ReadFromInsufficientBufferShouldReturnError(t *testing.T) {
 func Test_GetString(t *testing.T) {
 	var st StringTable
 
-	data := MakeDataBuffer(
+	data := makeDataBuffer(
 		0x0C,
 		'H', 'e', 'l', 'l', 'o', 0x00,
 		'W', 'o', 'r', 'l', 'd', 0x00)
@@ -33,7 +33,7 @@ func Test_GetString(t *testing.T) {
 		t.Errorf("Error should be nil but was %s", err)
 	}
 
-	value, err := st.getString(MakeDataBuffer(0x00))
+	value, err := st.getString(makeDataBuffer(0x00))
 	if err != nil {
 		t.Errorf("Error should be nil but was %s", err)
 	}
@@ -42,7 +42,7 @@ func Test_GetString(t *testing.T) {
 		t.Errorf("Value should be 'Hello' but was '%s'", value)
 	}
 
-	value, err = st.getString(MakeDataBuffer(0x06))
+	value, err = st.getString(makeDataBuffer(0x06))
 	if err != nil {
 		t.Errorf("Error should be nil but was %s", err)
 	}

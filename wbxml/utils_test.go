@@ -10,9 +10,9 @@ func ExampleReadMultiByteUint32() {
 		result uint32
 	)
 
-	result, _ = readMultiByteUint32(MakeDataBuffer(0x81, 0x20))
+	result, _ = readMultiByteUint32(makeDataBuffer(0x81, 0x20))
 	fmt.Printf("%d\n", result)
-	result, _ = readMultiByteUint32(MakeDataBuffer(0x60))
+	result, _ = readMultiByteUint32(makeDataBuffer(0x60))
 	fmt.Printf("%d\n", result)
 	// OUTPUT: 160
 	// 96
@@ -24,7 +24,7 @@ func Test_ReadMultiByteUint32_Failure(t *testing.T) {
 		err    error
 	)
 
-	result, err = readMultiByteUint32(MakeDataBuffer(0x81))
+	result, err = readMultiByteUint32(makeDataBuffer(0x81))
 
 	if err == nil {
 		t.Error("Error should be set but was nil")

@@ -23,7 +23,7 @@ const (
 	VALUE_ACCEPT byte = 0x86
 )
 
-func MakeCodeBook() *CodeBook {
+func makeCodeBook() *CodeBook {
 	var codeBook *CodeBook = NewCodeBook()
 
 	var codePage CodePage = NewCodePage("cp", 0)
@@ -58,12 +58,12 @@ func MakeCodeBook() *CodeBook {
 	return codeBook
 }
 
-func MakeDataBuffer(data ...byte) *bytes.Buffer {
+func makeDataBuffer(data ...byte) *bytes.Buffer {
 	return bytes.NewBuffer(data)
 }
 
 func getDecodeResult(data ...byte) string {
 	var result string
-	result, _ = Decode(bytes.NewBuffer(data), MakeCodeBook())
+	result, _ = Decode(bytes.NewBuffer(data), makeCodeBook())
 	return result
 }

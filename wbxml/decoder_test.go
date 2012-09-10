@@ -7,10 +7,10 @@ import (
 
 func ExampleDecodeEntity() {
 	decoder := NewDecoder(
-		MakeDataBuffer(
+		makeDataBuffer(
 			ENTITY, 0x81, 0x20,
 			ENTITY, 0x60),
-		MakeCodeBook())
+		makeCodeBook())
 	var result string
 	result, _ = decoder.decodeEntity()
 	fmt.Println(result)
@@ -21,7 +21,7 @@ func ExampleDecodeEntity() {
 }
 
 func ExampleGetNameSpaceDeclarations() {
-	decoder := NewDecoder(MakeDataBuffer(0x00), MakeCodeBook())
+	decoder := NewDecoder(makeDataBuffer(0x00), makeCodeBook())
 
 	decoder.usedNamespaces[0] = true
 	decoder.usedNamespaces[1] = true
@@ -31,7 +31,7 @@ func ExampleGetNameSpaceDeclarations() {
 }
 
 func TestGetNameSpaceDeclarationsShouldReturnEmptyStringIfOnlyCP0IsSelected(t *testing.T) {
-	decoder := NewDecoder(MakeDataBuffer(0x00), MakeCodeBook())
+	decoder := NewDecoder(makeDataBuffer(0x00), makeCodeBook())
 
 	decoder.usedNamespaces[0] = true
 	if decoder.getNameSpaceDeclarations() != "" {
@@ -40,7 +40,7 @@ func TestGetNameSpaceDeclarationsShouldReturnEmptyStringIfOnlyCP0IsSelected(t *t
 }
 
 func TestGetNameSpaceDeclarationsShouldReturnEmptyStringINoCPIsActive(t *testing.T) {
-	decoder := NewDecoder(MakeDataBuffer(0x00), MakeCodeBook())
+	decoder := NewDecoder(makeDataBuffer(0x00), makeCodeBook())
 
 	if decoder.getNameSpaceDeclarations() != "" {
 		t.Errorf("NameSpace declaration should be emty but was \"%s\"", decoder.getNameSpaceDeclarations())
