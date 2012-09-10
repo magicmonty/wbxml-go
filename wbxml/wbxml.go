@@ -38,12 +38,18 @@ func Decode(reader io.ByteScanner, codeBook *CodeBook) (string, error) {
 
 func (d *Decoder) decodeBody() (string, error) {
 	var (
-		documentType string = "<?xml version=\"1.0\"?>\n"
+		documentType string = "<?xml version=\"1.0\"%s?>\n"
 		result       string
 		err          error
 	)
 
 	if d.codeBook.IsReady() {
+		if d.header.charSetAsString == "" {
+			documentType = fmt.Sprintf(documentType, "")
+		} else {
+			documentType = fmt.Sprintf(documentType, fmt.Sprintf(" encoding=\"%s\"", d.header.charSetAsString))
+		}
+
 		d.currentTagCodePage = d.codeBook.TagCodePages[0]
 		if d.codeBook.HasAttributeCode(0) {
 			d.currentAttributeCodePage = d.codeBook.AttributeCodePages[0]

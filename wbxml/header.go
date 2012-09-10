@@ -8,6 +8,7 @@ type Header struct {
 	versionNumber    byte
 	publicIdentifier uint32
 	charSet          uint32
+	charSetAsString  string
 	stringTable      StringTable
 }
 
@@ -19,6 +20,7 @@ func (h *Header) ReadFromBuffer(reader io.ByteReader) error {
 		if err == nil {
 			h.charSet, err = readMultiByteUint32(reader)
 			if err == nil {
+				h.charSetAsString, _ = GetCharsetStringByCode(h.charSet)
 				err = h.stringTable.ReadFromBuffer(reader)
 			}
 		}
@@ -34,6 +36,7 @@ func NewDefaultHeader() Header {
 	header.charSet = uint32(CHARSET_UTF8)
 	header.stringTable.length = 0
 	header.stringTable.content = nil
+	header.charSetAsString = ""
 
 	return header
 }
