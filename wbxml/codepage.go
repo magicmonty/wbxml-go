@@ -1,5 +1,9 @@
 package wbxml
 
+import (
+	"fmt"
+)
+
 type CodePage struct {
 	Name     string
 	Code     byte
@@ -35,4 +39,41 @@ func (codePage *CodePage) HasTagCode(Code byte) bool {
 	_, ok = codePage.Tags[Code]
 
 	return ok
+}
+
+func (codePage *CodePage) GetNameSpaceString() string {
+	var (
+		part1 string = ""
+		part2 string = ""
+	)
+
+	if codePage.Code > 0 {
+		if codePage.Code/26 > 0 {
+			part1 = fmt.Sprintf("%c", 0x41+((codePage.Code/26)-1)%26)
+		}
+
+		part2 = fmt.Sprintf("%c", 0x41+(codePage.Code%26))
+	}
+
+	return part1 + part2
+}
+
+func (codePage *CodePage) GetNameSpaceDeclaration() string {
+	var (
+		nameSpacePrefix string
+		result          string
+	)
+
+	if codePage.Name != "" {
+		nameSpacePrefix = codePage.GetNameSpaceString()
+		if nameSpacePrefix == "" {
+			result = " xmlns=\""
+		} else {
+			result = " xmlns:" + nameSpacePrefix + "=\""
+		}
+
+		result += codePage.Name + "\""
+	}
+
+	return result
 }

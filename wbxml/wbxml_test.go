@@ -11,11 +11,12 @@ func TestDummy(t *testing.T) {
 }
 
 const (
-	TAG_BR    byte = 0x05
-	TAG_CARD  byte = 0x06
-	TAG_XYZ   byte = 0x07
-	TAG_DO    byte = 0x08
-	TAG_INPUT byte = 0x09
+	TAG_BR     byte = 0x05
+	TAG_CARD   byte = 0x06
+	TAG_XYZ    byte = 0x07
+	TAG_DO     byte = 0x08
+	TAG_INPUT  byte = 0x09
+	TAG_CP2TAG byte = 0x05
 
 	ATTR_STYLE_LIST byte = 0x05
 	ATTR_TYPE       byte = 0x06
@@ -38,6 +39,14 @@ func MakeCodeBook() *CodeBook {
 	codePage.AddTag("DO", TAG_DO)
 	codePage.AddTag("INPUT", TAG_INPUT)
 
+	codeBook.AddTagCodePage(codePage)
+
+	codePage = NewCodePage("cp2", 1)
+	codePage.AddTag("CP2TAG", TAG_CP2TAG)
+
+	codeBook.AddTagCodePage(codePage)
+
+	codePage = NewCodePage("cp255", 255)
 	codeBook.AddTagCodePage(codePage)
 
 	var attributeCodePage AttributeCodePage = NewAttributeCodePage(0)
@@ -72,6 +81,13 @@ func ExampleEmptyTag() {
 	// <XYZ/>
 }
 
+func ExampleEmptyTagWithDifferentNameSpace() {
+	fmt.Println(
+		getDecodeResult(WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00, SWITCH_PAGE, 0x01, TAG_CP2TAG))
+	// OUTPUT: <?xml version="1.0"?>
+	// <B:CP2TAG xmlns:B="cp2"/>
+}
+
 func ExampleEmptyLiteralTag() {
 	fmt.Println(
 		getDecodeResult(
@@ -91,6 +107,17 @@ func ExampleTagWithEmptyTagAsContent() {
 	// <XYZ><CARD/></XYZ>
 }
 
+func ExampleTagWithEmptyTagFromDifferentCodePageAsContent() {
+	fmt.Println(
+		getDecodeResult(
+			WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
+			TAG_XYZ|TAG_HAS_CONTENT,
+			SWITCH_PAGE, 0x01, TAG_CP2TAG,
+			END))
+	// OUTPUT: <?xml version="1.0"?>
+	// <XYZ xmlns="cp" xmlns:B="cp2"><B:CP2TAG/></XYZ>
+}
+
 func ExampleTagWithTextAsContent() {
 	fmt.Println(
 		getDecodeResult(
@@ -102,6 +129,17 @@ func ExampleTagWithTextAsContent() {
 	// <XYZ>X &amp; Y</XYZ>
 }
 
+func ExampleTagFromDifferentCodePageWithTextAsContent() {
+	fmt.Println(
+		getDecodeResult(
+			WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
+			SWITCH_PAGE, 0x01, TAG_CP2TAG|TAG_HAS_CONTENT,
+			STR_I, 'X', ' ', '&', ' ', 'Y', 0x00,
+			END))
+	// OUTPUT: <?xml version="1.0"?>
+	// <B:CP2TAG xmlns:B="cp2">X &amp; Y</B:CP2TAG>
+}
+
 func ExampleMultipleNestedTags() {
 	fmt.Println(
 		getDecodeResult(
@@ -111,6 +149,19 @@ func ExampleMultipleNestedTags() {
 			END, END, END))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ><CARD><DO><BR/></DO></CARD></XYZ>
+}
+
+func ExampleMultipleNestedTagsWithDifferentCodePages() {
+	fmt.Println(
+		getDecodeResult(
+			WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
+			TAG_XYZ|TAG_HAS_CONTENT,
+			SWITCH_PAGE, 0x01, TAG_CP2TAG|TAG_HAS_CONTENT,
+			SWITCH_PAGE, 0x00, TAG_DO|TAG_HAS_CONTENT,
+			TAG_BR,
+			END, END, END))
+	// OUTPUT: <?xml version="1.0"?>
+	// <XYZ xmlns="cp" xmlns:B="cp2"><B:CP2TAG><DO><BR/></DO></B:CP2TAG></XYZ>
 }
 
 func ExampleReadMultiByteUint32() {
@@ -127,9 +178,8 @@ func ExampleReadMultiByteUint32() {
 }
 
 func ExampleDecodeEntity() {
-	decoder, _ := NewDecoder(
+	decoder := NewDecoder(
 		MakeDataBuffer(
-			WBXML_1_3, UNKNOWN_PI, CHARSET_UTF8, 0x00,
 			ENTITY, 0x81, 0x20,
 			ENTITY, 0x60),
 		MakeCodeBook())
@@ -181,4 +231,31 @@ func ExampleExtendedWBXMLDecode() {
 			END))
 	// OUTPUT: <?xml version="1.0"?>
 	// <XYZ><CARD NAME="abc" STYLE="LIST"><DO TYPE="ACCEPT" URL="http://xyz.org/s"/> Enter name: <INPUT TYPE="TEXT" KEY="N"/></CARD></XYZ>
+}
+
+func ExampleGetNameSpaceDeclarations() {
+	decoder := NewDecoder(MakeDataBuffer(0x00), MakeCodeBook())
+
+	decoder.usedNamespaces[0] = true
+	decoder.usedNamespaces[1] = true
+	decoder.usedNamespaces[255] = true
+	fmt.Println(decoder.getNameSpaceDeclarations())
+	// OUTPUT:  xmlns="cp" xmlns:B="cp2" xmlns:IV="cp255"
+}
+
+func TestGetNameSpaceDeclarationsShouldReturnEmptyStringIfOnlyCP0IsSelected(t *testing.T) {
+	decoder := NewDecoder(MakeDataBuffer(0x00), MakeCodeBook())
+
+	decoder.usedNamespaces[0] = true
+	if decoder.getNameSpaceDeclarations() != "" {
+		t.Errorf("NameSpace declaration should be emty but was \"%s\"", decoder.getNameSpaceDeclarations())
+	}
+}
+
+func TestGetNameSpaceDeclarationsShouldReturnEmptyStringINoCPIsActive(t *testing.T) {
+	decoder := NewDecoder(MakeDataBuffer(0x00), MakeCodeBook())
+
+	if decoder.getNameSpaceDeclarations() != "" {
+		t.Errorf("NameSpace declaration should be emty but was \"%s\"", decoder.getNameSpaceDeclarations())
+	}
 }

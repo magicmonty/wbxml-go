@@ -7,50 +7,33 @@ import (
 	"io"
 )
 
-const (
-	TAG_STATE       byte = 1
-	ATTRIBUTE_STATE byte = 2
-)
-
 type Decoder struct {
 	currentTagCodePage       CodePage
 	currentAttributeCodePage AttributeCodePage
-	currentState             byte
+	usedNamespaces           map[byte]bool
 	header                   Header
 	reader                   io.ByteScanner
 	codeBook                 *CodeBook
 }
 
-func NewDecoder(reader io.ByteScanner, codeBook *CodeBook) (*Decoder, error) {
-	var err error
-
+func NewDecoder(reader io.ByteScanner, codeBook *CodeBook) *Decoder {
 	decoder := new(Decoder)
 	decoder.codeBook = codeBook
 	decoder.reader = reader
-	decoder.currentTagCodePage = codeBook.TagCodePages[0]
-	if codeBook.HasAttributeCode(0) {
-		decoder.currentAttributeCodePage = codeBook.AttributeCodePages[0]
-	}
-	decoder.currentState = TAG_STATE
-	err = decoder.header.ReadFromBuffer(reader)
-	if err != nil {
-		decoder = nil
-	}
-	return decoder, err
+	decoder.usedNamespaces = make(map[byte]bool)
+
+	return decoder
 }
 
 func Decode(reader io.ByteScanner, codeBook *CodeBook) (string, error) {
-	if codeBook.IsReady() {
-		decoder, err := NewDecoder(reader, codeBook)
-		if err == nil {
-			return decoder.decodeBody()
-		} else {
-			return "", err
-		}
+	decoder := NewDecoder(reader, codeBook)
+	err := decoder.header.ReadFromBuffer(reader)
 
+	if err == nil {
+		return decoder.decodeBody()
 	}
 
-	return "", nil
+	return "", err
 }
 
 func (d *Decoder) decodeBody() (string, error) {
@@ -60,15 +43,24 @@ func (d *Decoder) decodeBody() (string, error) {
 		err          error
 	)
 
-	result, err = d.decodeTag()
-	if err == nil {
-		result = documentType + result
+	if d.codeBook.IsReady() {
+		d.currentTagCodePage = d.codeBook.TagCodePages[0]
+		if d.codeBook.HasAttributeCode(0) {
+			d.currentAttributeCodePage = d.codeBook.AttributeCodePages[0]
+		}
+
+		result, err = d.decodeTag(true)
+		if err == nil {
+			result = documentType + result
+		}
+	} else {
+		err = fmt.Errorf("CodeBook not ready")
 	}
 
 	return result, err
 }
 
-func (d *Decoder) decodeTag() (string, error) {
+func (d *Decoder) decodeTag(addNamespaceDeclaration bool) (string, error) {
 	var (
 		nextByte byte
 		err      error
@@ -78,24 +70,32 @@ func (d *Decoder) decodeTag() (string, error) {
 	if err == nil {
 		d.reader.UnreadByte()
 
-		if nextByte&TAG_HAS_ATTRIBUTES != 0 {
-
-			if nextByte&TAG_HAS_CONTENT != 0 {
-				return d.decodeTagWithContentAndAttributes()
-			} else {
-				return d.decodeEmptyTagWithAttributes()
+		if nextByte == SWITCH_PAGE {
+			err = d.switchTagCodePage()
+			if err == nil {
+				return d.decodeTag(addNamespaceDeclaration)
 			}
-		} else if nextByte&TAG_HAS_CONTENT != 0 {
-			return d.decodeTagWithContent()
 		} else {
-			return d.decodeEmptyTag()
+			d.usedNamespaces[d.currentTagCodePage.Code] = true
+			if nextByte&TAG_HAS_ATTRIBUTES != 0 {
+
+				if nextByte&TAG_HAS_CONTENT != 0 {
+					return d.decodeTagWithContentAndAttributes(addNamespaceDeclaration)
+				} else {
+					return d.decodeEmptyTagWithAttributes(addNamespaceDeclaration)
+				}
+			} else if nextByte&TAG_HAS_CONTENT != 0 {
+				return d.decodeTagWithContent(addNamespaceDeclaration)
+			} else {
+				return d.decodeEmptyTag(addNamespaceDeclaration)
+			}
 		}
 	}
 
 	return "", err
 }
 
-func (d *Decoder) decodeTagWithContentAndAttributes() (string, error) {
+func (d *Decoder) decodeTagWithContentAndAttributes(addNamespaceDeclaration bool) (string, error) {
 	var (
 		result     string = ""
 		currentTag string
@@ -110,7 +110,19 @@ func (d *Decoder) decodeTagWithContentAndAttributes() (string, error) {
 		if err == nil {
 			content, err = d.decodeContent()
 			if err == nil {
-				result = fmt.Sprintf("<%s%s\">%s</%s>", currentTag, attributes, content, currentTag)
+				if addNamespaceDeclaration {
+					result = fmt.Sprintf(
+						"<%s%s%s\">%s</%s>",
+						currentTag, d.getNameSpaceDeclarations(), attributes,
+						content,
+						currentTag)
+				} else {
+					result = fmt.Sprintf(
+						"<%s%s\">%s</%s>",
+						currentTag, attributes,
+						content,
+						currentTag)
+				}
 			}
 		}
 	}
@@ -118,7 +130,7 @@ func (d *Decoder) decodeTagWithContentAndAttributes() (string, error) {
 	return result, err
 }
 
-func (d *Decoder) decodeEmptyTagWithAttributes() (string, error) {
+func (d *Decoder) decodeEmptyTagWithAttributes(addNamespaceDeclaration bool) (string, error) {
 	var (
 		result     string = ""
 		currentTag string
@@ -129,7 +141,13 @@ func (d *Decoder) decodeEmptyTagWithAttributes() (string, error) {
 	if err == nil && currentTag != "" {
 		attributes, err = d.decodeAttributes()
 		if err == nil {
-			result = fmt.Sprintf("<%s%s\"/>", currentTag, attributes)
+			if addNamespaceDeclaration {
+				result = fmt.Sprintf(
+					"<%s%s%s\"/>",
+					currentTag, d.getNameSpaceDeclarations(), attributes)
+			} else {
+				result = fmt.Sprintf("<%s%s\"/>", currentTag, attributes)
+			}
 		}
 	}
 
@@ -193,7 +211,7 @@ func (d *Decoder) decodeAttribute() (string, error) {
 	return result, err
 }
 
-func (d *Decoder) decodeTagWithContent() (string, error) {
+func (d *Decoder) decodeTagWithContent(addNamespaceDeclaration bool) (string, error) {
 	var (
 		result     string = ""
 		nextByte   byte
@@ -208,7 +226,15 @@ func (d *Decoder) decodeTagWithContent() (string, error) {
 		if err == nil {
 			nextByte, err = d.reader.ReadByte()
 			if err == nil && nextByte == END {
-				result = fmt.Sprintf("<%s>%s</%s>", currentTag, content, currentTag)
+				if addNamespaceDeclaration {
+					result = fmt.Sprintf(
+						"<%s%s>%s</%s>",
+						currentTag, d.getNameSpaceDeclarations(),
+						content,
+						currentTag)
+				} else {
+					result = fmt.Sprintf("<%s>%s</%s>", currentTag, content, currentTag)
+				}
 			}
 		}
 	}
@@ -233,10 +259,13 @@ func (d *Decoder) decodeContent() (string, error) {
 				content, err = d.decodeInlineString()
 			} else if nextByte == STR_T {
 				content, err = d.decodeStringTableReference()
+			} else if nextByte == SWITCH_PAGE {
+				content = ""
+				err = d.switchTagCodePage()
 			} else if nextByte == ENTITY {
 				content, err = d.decodeEntity()
 			} else {
-				content, err = d.decodeTag()
+				content, err = d.decodeTag(false)
 			}
 
 			if err == nil {
@@ -250,6 +279,32 @@ func (d *Decoder) decodeContent() (string, error) {
 	}
 
 	return result, err
+}
+
+func (d *Decoder) switchTagCodePage() error {
+	var (
+		nextByte byte
+		err      error
+	)
+
+	nextByte, err = d.reader.ReadByte()
+	if err == nil {
+		if nextByte == SWITCH_PAGE {
+			nextByte, err = d.reader.ReadByte()
+			if err == nil {
+				if d.codeBook.HasTagCode(nextByte) {
+					d.usedNamespaces[nextByte] = true
+					d.currentTagCodePage = d.codeBook.TagCodePages[nextByte]
+				} else {
+					err = fmt.Errorf("Codebook has no codepage %d", nextByte)
+				}
+			}
+		} else {
+			err = fmt.Errorf("Assumed SWITCH_PAGE token but was %d", nextByte)
+		}
+	}
+
+	return err
 }
 
 func (d *Decoder) decodeInlineString() (string, error) {
@@ -275,7 +330,7 @@ func (d *Decoder) decodeInlineString() (string, error) {
 	return d.escapeString(result), err
 }
 
-func (d *Decoder) decodeEmptyTag() (string, error) {
+func (d *Decoder) decodeEmptyTag(addNamespaceDeclaration bool) (string, error) {
 	var (
 		tagName string
 		err     error
@@ -284,7 +339,11 @@ func (d *Decoder) decodeEmptyTag() (string, error) {
 	tagName, err = d.decodeTagName()
 
 	if err == nil {
-		return "<" + tagName + "/>", nil
+		if addNamespaceDeclaration {
+			return "<" + tagName + d.getNameSpaceDeclarations() + "/>", nil
+		} else {
+			return "<" + tagName + "/>", nil
+		}
 	}
 
 	return "", err
@@ -309,6 +368,10 @@ func (d *Decoder) decodeTagName() (string, error) {
 			tagName = d.currentTagCodePage.Tags[nextByte]
 		} else {
 			err = fmt.Errorf("Unknown tag code: %d", nextByte)
+		}
+
+		if tagName != "" && d.currentTagCodePage.Code > 0 {
+			tagName = d.currentTagCodePage.GetNameSpaceString() + ":" + tagName
 		}
 	}
 
@@ -360,4 +423,33 @@ func (d *Decoder) decodeStringTableReference() (string, error) {
 	}
 
 	return result, err
+}
+
+func (d *Decoder) getNameSpaceDeclarations() string {
+	var (
+		result                string
+		i                     byte
+		cp                    CodePage
+		isOnlyCodePage0Active bool = true
+	)
+
+	for i = 0; i < 255; i++ {
+		if d.usedNamespaces[i] {
+			cp = d.codeBook.TagCodePages[i]
+			result += cp.GetNameSpaceDeclaration()
+			isOnlyCodePage0Active = i == 0
+		}
+	}
+
+	if d.usedNamespaces[255] {
+		cp = d.codeBook.TagCodePages[255]
+		result += cp.GetNameSpaceDeclaration()
+		isOnlyCodePage0Active = false
+	}
+
+	if isOnlyCodePage0Active {
+		result = ""
+	}
+
+	return result
 }
