@@ -2,7 +2,6 @@ package wbxml
 
 import (
 	"fmt"
-	"testing"
 )
 
 func ExampleEmptyTag() {
@@ -95,34 +94,6 @@ func ExampleMultipleNestedTagsWithDifferentCodePages() {
 	// <XYZ xmlns="cp" xmlns:B="cp2"><B:CP2TAG><DO><BR/></DO></B:CP2TAG></XYZ>
 }
 
-func ExampleReadMultiByteUint32() {
-	var (
-		result uint32
-	)
-
-	result, _ = readMultiByteUint32(MakeDataBuffer(0x81, 0x20))
-	fmt.Printf("%d\n", result)
-	result, _ = readMultiByteUint32(MakeDataBuffer(0x60))
-	fmt.Printf("%d\n", result)
-	// OUTPUT: 160
-	// 96
-}
-
-func ExampleDecodeEntity() {
-	decoder := NewDecoder(
-		MakeDataBuffer(
-			ENTITY, 0x81, 0x20,
-			ENTITY, 0x60),
-		MakeCodeBook())
-	var result string
-	result, _ = decoder.decodeEntity()
-	fmt.Println(result)
-	result, _ = decoder.decodeEntity()
-	fmt.Println(result)
-	// OUTPUT: &#160;
-	// &#96;
-}
-
 // Example from http://www.w3.org/TR/wbxml/#_Toc443384926
 func ExampleSimpleWBXMLDecode() {
 	fmt.Println(
@@ -162,31 +133,4 @@ func ExampleExtendedWBXMLDecode() {
 			END))
 	// OUTPUT: <?xml version="1.0" encoding="utf-8"?>
 	// <XYZ><CARD NAME="abc" STYLE="LIST"><DO TYPE="ACCEPT" URL="http://xyz.org/s"/> Enter name: <INPUT TYPE="TEXT" KEY="N"/></CARD></XYZ>
-}
-
-func ExampleGetNameSpaceDeclarations() {
-	decoder := NewDecoder(MakeDataBuffer(0x00), MakeCodeBook())
-
-	decoder.usedNamespaces[0] = true
-	decoder.usedNamespaces[1] = true
-	decoder.usedNamespaces[255] = true
-	fmt.Println(decoder.getNameSpaceDeclarations())
-	// OUTPUT:  xmlns="cp" xmlns:B="cp2" xmlns:IV="cp255"
-}
-
-func TestGetNameSpaceDeclarationsShouldReturnEmptyStringIfOnlyCP0IsSelected(t *testing.T) {
-	decoder := NewDecoder(MakeDataBuffer(0x00), MakeCodeBook())
-
-	decoder.usedNamespaces[0] = true
-	if decoder.getNameSpaceDeclarations() != "" {
-		t.Errorf("NameSpace declaration should be emty but was \"%s\"", decoder.getNameSpaceDeclarations())
-	}
-}
-
-func TestGetNameSpaceDeclarationsShouldReturnEmptyStringINoCPIsActive(t *testing.T) {
-	decoder := NewDecoder(MakeDataBuffer(0x00), MakeCodeBook())
-
-	if decoder.getNameSpaceDeclarations() != "" {
-		t.Errorf("NameSpace declaration should be emty but was \"%s\"", decoder.getNameSpaceDeclarations())
-	}
 }
