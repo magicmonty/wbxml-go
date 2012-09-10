@@ -2,7 +2,20 @@ package wbxml
 
 import (
 	"fmt"
+	"testing"
 )
+
+func Test_DecodeFailure(t *testing.T) {
+	result, err := Decode(MakeDataBuffer(0x00), MakeCodeBook())
+
+	if err == nil {
+		t.Error("Error should be set but was nil")
+	}
+
+	if result != "" {
+		t.Errorf("Result should be empty but was %s", result)
+	}
+}
 
 func ExampleEmptyTag() {
 	fmt.Println(
