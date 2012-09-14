@@ -2,6 +2,8 @@ package wbxml
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 )
 
 const (
@@ -66,4 +68,21 @@ func getDecodeResult(data ...byte) string {
 	var result string
 	result, _ = Decode(bytes.NewBuffer(data), makeCodeBook())
 	return result
+}
+
+func printByteStream(r *bytes.Buffer) {
+	var (
+		result string = ""
+	)
+
+	for true {
+		b, err := r.ReadByte()
+		if err == io.EOF {
+			break
+		}
+
+		result += fmt.Sprintf("%0.2X ", b)
+	}
+
+	fmt.Println(result)
 }

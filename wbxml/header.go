@@ -9,10 +9,10 @@ type Header struct {
 	publicIdentifier uint32
 	charSet          uint32
 	charSetAsString  string
-	stringTable      StringTable
+	stringTable      *StringTable
 }
 
-func (h *Header) ReadFromBuffer(reader io.ByteReader) error {
+func (h *Header) Read(reader io.ByteReader) error {
 	var err error
 	h.versionNumber, err = reader.ReadByte()
 	if err == nil {
@@ -21,7 +21,7 @@ func (h *Header) ReadFromBuffer(reader io.ByteReader) error {
 			h.charSet, err = readMultiByteUint32(reader)
 			if err == nil {
 				h.charSetAsString, _ = GetCharsetStringByCode(h.charSet)
-				err = h.stringTable.ReadFromBuffer(reader)
+				err = h.stringTable.Read(reader)
 			}
 		}
 	}
@@ -29,13 +29,26 @@ func (h *Header) ReadFromBuffer(reader io.ByteReader) error {
 	return err
 }
 
-func NewDefaultHeader() Header {
-	var header Header
+func (h *Header) Write(writer io.Writer) error {
+	_, err := writer.Write([]byte{h.versionNumber})
+	if err == nil {
+		err = writeMultiByteUint32(writer, h.publicIdentifier)
+		if err == nil {
+			err = writeMultiByteUint32(writer, h.charSet)
+			if err == nil {
+				err = h.stringTable.Write(writer)
+			}
+		}
+	}
+	return err
+}
+
+func NewDefaultHeader() *Header {
+	header := new(Header)
 	header.versionNumber = WBXML_1_3
 	header.publicIdentifier = uint32(UNKNOWN_PI)
 	header.charSet = uint32(CHARSET_UTF8)
-	header.stringTable.length = 0
-	header.stringTable.content = nil
+	header.stringTable = NewStringTable()
 	header.charSetAsString = ""
 
 	return header

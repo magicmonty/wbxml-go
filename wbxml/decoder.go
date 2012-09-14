@@ -11,7 +11,7 @@ type Decoder struct {
 	currentTagCodePage       CodePage
 	currentAttributeCodePage AttributeCodePage
 	usedNamespaces           map[byte]bool
-	header                   Header
+	header                   *Header
 	reader                   io.ByteScanner
 	codeBook                 *CodeBook
 }
@@ -21,8 +21,13 @@ func NewDecoder(reader io.ByteScanner, codeBook *CodeBook) *Decoder {
 	decoder.codeBook = codeBook
 	decoder.reader = reader
 	decoder.usedNamespaces = make(map[byte]bool)
+	decoder.header = NewDefaultHeader()
 
 	return decoder
+}
+
+func (d *Decoder) Decode() (string, error) {
+	return d.decodeBody()
 }
 
 func (d *Decoder) decodeBody() (string, error) {
