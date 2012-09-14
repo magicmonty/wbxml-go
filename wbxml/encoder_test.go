@@ -20,7 +20,7 @@ func encodeExample(xml string) {
 }
 
 // TODO
-func _ExampleEncodeWbxml() {
+func ExampleEncodeWbxml() {
 	encodeExample(
 		`<?xml version="1.0" encoding="utf-8"?>
 			<XYZ xmlns="cp" xmlns:B="cp2">
@@ -30,7 +30,7 @@ func _ExampleEncodeWbxml() {
 					</B:CP2TAG>
 				</CARD>
 			</XYZ>`)
-	// OUTPUT: 03 01 6A 00 47 46 00 01 45 00 00 48 03 48 65 6C 6C 6F C2 02 81 20 57 6F 72 6C 64 00 01 01 01 01 
+	// OUTPUT: 03 01 6A 00 47 46 00 01 45 00 00 48 03 48 65 6C 6C 6F 00 02 81 20 03 57 6F 72 6C 64 00 01 01 01 01 
 }
 
 func ExampleEncodeEmptyTag() {
@@ -112,7 +112,7 @@ func ExampleEncodeMultipleNestedTagsWithDifferentCodePages() {
 
 // Example from http://www.w3.org/TR/wbxml/#_Toc443384926
 // TODO
-func _ExampleSimpleWBXMLEncode() {
+func ExampleSimpleWBXMLEncode() {
 	encodeExample(
 		`<?xml version="1.0" encoding="utf-8"?>
 		<XYZ><CARD> X &amp; Y<BR/> X&#160;=&#160;1 </CARD></XYZ>`)
