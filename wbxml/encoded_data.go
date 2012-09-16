@@ -19,9 +19,9 @@ type element struct {
 	isLiteral  bool
 }
 
-func NewElement(parent *element, tagCode byte, codePage byte, attributes []attribute) *element {
+func NewElement(tagCode byte, codePage byte, attributes []attribute) *element {
 	el := new(element)
-	el.parent = parent
+	el.parent = nil
 	el.tagCode = tagCode
 	el.codePage = codePage
 	el.attributes = attributes
@@ -38,10 +38,6 @@ func (e *element) HasContent() bool {
 
 func (e *element) HasAttributes() bool {
 	return len(e.attributes) > 0
-}
-
-func (e *element) IsRoot() bool {
-	return e.parent == nil
 }
 
 func (e *element) AddContent(content contentElement) {
@@ -131,6 +127,19 @@ func (e *element) encodeContent(w io.Writer) error {
 }
 
 func (e *element) encodeAttributes(w io.Writer) error {
+	if len(e.attributes) > 0 {
+		for _, a := range e.attributes {
+			_, err := w.Write(a)
+			if err != nil {
+				return err
+			}
+		}
+		_, err := w.Write([]byte{END})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

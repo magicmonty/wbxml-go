@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"testing"
 )
 
 const (
@@ -85,4 +86,10 @@ func printByteStream(r *bytes.Buffer) {
 	}
 
 	fmt.Println(result)
+}
+
+func checkNoError(t *testing.T, err error) {
+	if err != nil {
+		t.Errorf("Error thrown: '%s'", err.Error())
+	}
 }
